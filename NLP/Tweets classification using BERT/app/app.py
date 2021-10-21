@@ -84,7 +84,7 @@ class BertForSequenceClassification(nn.Module):
         nn.init.xavier_normal_(self.classifier.weight)
         
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None):
-        _, pooled_output = self.bert(input_ids, token_type_ids, attention_mask)
+        _, pooled_output = self.bert(input_ids, token_type_ids, attention_mask, return_dict=False)
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
 
@@ -106,7 +106,10 @@ def load_model():
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-    model.load_state_dict(torch.load('bert_model_final.pth'))
+    if torch.cuda.is_available():
+        model.load_state_dict(torch.load('bert_model_final.pth'))
+    else:
+        model.load_state_dict(torch.load('bert_model_final.pth', map_location=torch.device('cpu')))
     model.to(device)
     model.eval()
 
@@ -156,21 +159,21 @@ def make_predictions(input_texts, model, tokenizer, device):
 
     pred_probs = np.concatenate(predictions, axis=0)
     predictions = np.argmax(pred_probs, axis=1).flatten()
+    return predictions
 
 @app.route("/predict", methods=["POST"])
 def predict():
     req = request.get_json(force=True)
 
     input_texts = req['texts']
+
+    print("Loading the model...")
     model, tokenizer, device = load_model()
 
-    # predictions = predict(model, tokenizer, device)
-    print(req)
+    print("Making predictions...")
+    predictions = make_predictions(input_texts, model, tokenizer, device)
 
-
-
-
-    return {"status": True}
+    return {"predictions": predictions.tolist()}
 
 
 if __name__ == '__main__':
