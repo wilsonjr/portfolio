@@ -84,7 +84,7 @@ class BertForSequenceClassification(nn.Module):
         nn.init.xavier_normal_(self.classifier.weight)
         
     def forward(self, input_ids, token_type_ids=None, attention_mask=None, labels=None):
-        _, pooled_output = self.bert(input_ids, token_type_ids, attention_mask, return_dict=False)
+        _, pooled_output = self.bert(input_ids, token_type_ids, attention_mask)
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
 
@@ -160,6 +160,10 @@ def make_predictions(input_texts, model, tokenizer, device):
     pred_probs = np.concatenate(predictions, axis=0)
     predictions = np.argmax(pred_probs, axis=1).flatten()
     return predictions
+
+@app.route("/", methods=["POST"])
+def home():
+    return "Hello"
 
 @app.route("/predict", methods=["POST"])
 def predict():
